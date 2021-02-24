@@ -1,3 +1,4 @@
+
 import csv
 import copy
 import random
@@ -174,12 +175,22 @@ def op_options(turns, opponents, me, op_data):
                             if op != giver:
                                 op.doesnt_have.add(options[0])
 
+    #add dh thing here and make a new func for file thing
+
 
 def cfile_contents(turns, opponents, me, op_data):
     
-    names_found = set([[x for x in i.cards if x in names] for i in opponents+[me]][0])
-    weapons_found = set([[x for x in i.cards if x in weapons] for i in opponents+[me]][0])
-    rooms_found = set([[x for x in i.cards if x in rooms] for i in opponents+[me]][0])
+    names_found = set()
+    weapons_found = set()
+    rooms_found = set()
+
+    for item in [elm for i in [x.cards for x in opponents+[me]] for elm in i]:
+        if item in names:
+            names_found.add(item)
+        elif item in weapons:
+            weapons_found.add(item)
+        else:
+            rooms_found.add(item)
 
     if len(names - names_found) == 1:
         n = list(names-names_found)[0]
@@ -250,8 +261,7 @@ def testing():
                                     break
                         else:
                             f.write("\n")
-                        break
-    
-                    
+                        break            
+
 answer()
 
