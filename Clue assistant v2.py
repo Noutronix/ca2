@@ -96,6 +96,7 @@ def answer():
             f4.write("\n{}'s cards:\n".format(op.name))
             for card in op.cards:
                 f4.write("{}\n".format(card))
+    return opponents
 
 
 def dh(turns, opponents, me, op_data):
@@ -157,79 +158,112 @@ def dh(turns, opponents, me, op_data):
                 op.doesnt_have.update([char, weapon, room])
 
 
-def op_options(turns, opponents, me, op_data):  
-    for turn in turns:
-        items = translate_turn(turn, me, opponents, op_data)
-        char = items[0]
-        weapon = items[1]
-        room = items[2]
-        taker = items[3]
-        giver = items[4]
-        if taker != me:
-            if giver != None and giver != me:
-                if not any(x in giver.cards for x in [char, weapon, room]):
-                    options = [x for x in [char, weapon, room] if not x in giver.doesnt_have]
-                    if len(options) == 1:
-                        giver.cards.add(options[0])
-                        for op in opponents:
-                            if op != giver:
-                                op.doesnt_have.add(options[0])
+def op_options(turns, opponents, me, op_data):
+    
+    while True:
+        
+        ops = copy.deepcopy(opponents)
+        
+        for turn in turns:
+            items = translate_turn(turn, me, opponents, op_data)
+            char = items[0]
+            weapon = items[1]
+            room = items[2]
+            taker = items[3]
+            giver = items[4]
+            if taker != me:
+                if giver != None and giver != me:
+                    if not any(x in giver.cards for x in [char, weapon, room]):
+                        options = [x for x in [char, weapon, room] if not x in giver.doesnt_have]
+                        if len(options) == 1:
+                            giver.cards.add(options[0])
+                            for op in opponents:
+                                if op != giver:
+                                    op.doesnt_have.add(options[0])
+        
+        for item in everything:
+            List = [op for op in opponents if not item in op.doesnt_have]
+            if len(List) == 1:
+                group = [x for x in [names, weapons, rooms] if item in x][0]
+                if any([i in group for i in [cfile.name, cfile.weapon, cfile.room]]):
+                    List[0].cards.add(item)
 
-    #add dh thing here and make a new func for file thing
+        for op in opponents:
+            if len(op.cards) == op.card_number:
+                for thing in everything:
+                    if not thing in op.cards:
+                        op.doesnt_have.add(thing)
+        
+        if not any(ops[x].doesnt_have != opponents[x].doesnt_have for x in range(len(ops))):
+            break
 
 
 def cfile_contents(turns, opponents, me, op_data):
-    
-    names_found = set()
-    weapons_found = set()
-    rooms_found = set()
+    is_true = True
+    while True:
+        f = [copy.copy(cfile.name), copy.copy(cfile.weapon), copy.copy(cfile.room)]
+        #making found card categories
+        names_found = set()
+        weapons_found = set()
+        rooms_found = set()
 
-    for item in [elm for i in [x.cards for x in opponents+[me]] for elm in i]:
-        if item in names:
-            names_found.add(item)
-        elif item in weapons:
-            weapons_found.add(item)
-        else:
-            rooms_found.add(item)
+        for item in [elm for i in [x.cards for x in opponents+[me]] for elm in i]:
+            if item in names:
+                names_found.add(item)
+            elif item in weapons:
+                weapons_found.add(item)
+            else:
+                rooms_found.add(item)
 
-    if len(names - names_found) == 1:
-        n = list(names-names_found)[0]
-        cfile.name = n
-        for op in opponents:
-            op.doesnt_have.add(n)
+        #if only one of a category isnt found
 
-    if len(weapons - weapons_found) == 1:
-        w = list(weapons-weapons_found)[0]
-        cfile.weapon = w
-        for op in opponents:
-            op.doesnt_have.add(w)
-    
-    if len(rooms - rooms_found) == 1:
-        r = list(weapons - weapons_found)[0]
-        cfile.room = r
-        for op in opponents:
-            op.doesnt_have.add(r)
+        if len(names - names_found) == 1:
+            n = list(names-names_found)[0]
+            cfile.name = n
+            for op in opponents:
+                op.doesnt_have.add(n)
 
-    for thing in everything:
-        if not thing in me.cards:
-            if all([thing in i.doesnt_have for i in opponents]):
-                #doesnt need dh
-                if thing in names:
-                    cfile.name = thing
-                if thing in weapons:
-                    cfile.weapon = thing
-                if thing in rooms:
-                    cfile.room = thing
+        if len(weapons - weapons_found) == 1:
+            w = list(weapons-weapons_found)[0]
+            cfile.weapon = w
+            for op in opponents:
+                op.doesnt_have.add(w)
+        
+        if len(rooms - rooms_found) == 1:
+            r = list(rooms - rooms_found)[0]
+            cfile.room = r
+            for op in opponents:
+                op.doesnt_have.add(r)
+
+        #if everyone doesnt have something
+
+        for thing in everything:
+            if not thing in me.cards:
+                if all([thing in i.doesnt_have for i in opponents]):
+                    #doesnt need dh
+                    if thing in names:
+                        cfile.name = thing
+                    if thing in weapons:
+                        cfile.weapon = thing
+                    if thing in rooms:
+                        cfile.room = thing
+        
+        op_options(turns, opponents, me, op_data)
+        
+        if is_true == True:
+            is_true = False
+        elif f == [cfile.name, cfile.weapon, cfile.room]:
+            break
 
 
-def testing():
+def create():
     Mycards = {"lounge", "white", "billiardroom", "pistol"}
     Scards = {"rope", "candlestick", "pipe", "library", "scarlett"}
     Fcards = {"conservatory", "diningroom", "study", "ballroom", "peacock"}
     Dcards = {"hall", "green", "mustard", "wrench"}
     ppl = [Scards, Fcards, Dcards, Mycards]
     with open("ca2_turns.csv", "w") as f:
-        for i in range(5):            
+        for i in range(8):            
             for person in ["sophie", "fiona", "david", "self"]:
                 ppl.append(ppl[0])
                 ppl.pop(0)
@@ -263,5 +297,25 @@ def testing():
                             f.write("\n")
                         break            
 
+def test():
+    Mycards = {"lounge", "white", "billiardroom", "pistol"}
+    Scards = {"rope", "candlestick", "pipe", "library", "scarlett"}
+    Fcards = {"conservatory", "diningroom", "study", "ballroom", "peacock"}
+    Dcards = {"hall", "green", "mustard", "wrench"}
+    dh = [x|{"plum", "knife", "kitchen"}|Mycards for x in [Fcards|Dcards, Dcards|Scards, Scards|Fcards]]
+    everyone = [Scards, Fcards, Dcards]
+    for n in range(100):
+        opponents = answer()
+        if not all(x in everyone[num] for num in range(3) for x in opponents[num].cards):
+            raise ValueError
+        if not all(x in dh[num] for num in range(3) for x in opponents[num].doesnt_have):
+            raise ValueError
+        if not all(x == None or x in {"plum", "knife", "kitchen"} for x in [cfile.name, cfile.weapon, cfile.room]):
+            raise ValueError
+    print("works")
+    
 answer()
 
+
+# things to do:
+# - play
